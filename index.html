@@ -20,7 +20,7 @@
   <input id="qty" type="number" min="1" value="1" required />
   <input id="image" placeholder="URL zdjęcia" />
   <input id="link" placeholder="Link do sklepu" />
-  <input id="pin" type="password" placeholder="PIN" required />
+  <input type="number" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" required />
   <button type="submit">Dodaj</button>
 </form>
 
@@ -69,9 +69,10 @@
       el.className = "item";
 
       el.innerHTML = `
-        <div class="check">
-          <label><input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""}/> Nie liczyć ceny</label>
+        <div class="check" style="position:absolute; top:8px; right:8px;">
+          <input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""} />
         </div>
+
         <img src="${d.image || ''}" alt="" />
         <div class="content">
           <h3>${d.name || "(brak nazwy)"}</h3>
