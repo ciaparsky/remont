@@ -1,169 +1,181 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lista remontowa</title>
-  <link rel="stylesheet" href="style.css">
+
+  <!-- Podpięcie zewnętrznego pliku CSS -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Firebase SDK (wersja modułowa) -->
+  <script type="module">
+    /*********************
+     * IMPORTY FIREBASE *
+     *********************/
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    /************************
+     * KONFIGURACJA FIREBASE *
+     ************************/
+    const firebaseConfig = {
+      apiKey: "AIzaSyArKqslVsWLUBO4EOPO6AyOyih23Fy6Y8o",
+      authDomain: "remont-eryk.firebaseapp.com",
+      projectId: "remont-eryk",
+      storageBucket: "remont-eryk.firebasestorage.app",
+      messagingSenderId: "557601020132",
+      appId: "1:557601020132:web:8cf6143a11ba33ca8d74f1"
+    };
+
+    // Inicjalizacja Firebase i Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Referencja do kolekcji w Firestore
+    const itemsRef = collection(db, "items");
+
+    /*********************
+     * ELEMENTY DOM *
+     *********************/
+    const listEl = document.getElementById("list");
+    const formEl = document.getElementById("addForm");
+    const totalEl = document.getElementById("total");
+
+    let currentItems = [];
+
+    /*********************
+     * RENDER LISTY *
+     *********************/
+    function renderList() {
+      listEl.innerHTML = "";
+      let total = 0;
+
+      currentItems.forEach(d => {
+        const skip = d.skipPrice === true;
+        const price = (Number(d.price) || 0) * (Number(d.qty) || 1);
+        if (!skip) total += price;
+
+        // Główny kontener elementu
+        const el = document.createElement("div");
+        el.className = "item";
+        el.style.position = "relative";
+
+        el.innerHTML = `
+          <!-- Checkbox w prawym górnym rogu – wyklucza z sumy -->
+          <div class="check" style="position:absolute; top:8px; right:8px;">
+            <input type="checkbox" ${skip ? "checked" : ""} />
+          </div>
+
+          <!-- Zdjęcie produktu -->
+          <img class="item-image" src="${d.image || ''}" />
+
+          <div class="content">
+            <!-- Nazwa -->
+            <h3>${d.name || "(brak nazwy)"}</h3>
+
+            <!-- Opis – rozwijany, z zachowaniem ENTERÓW -->
+            <details>
+              <summary>Opis</summary>
+              <p class="desc">${(d.desc || "").replace(/\n/g, "<br>")}</p>
+            </details>
+
+            <!-- Cena i ilość -->
+            <p>${(Number(d.price) || 0).toFixed(2)} zł × ${d.qty || 1}</p>
+
+            <!-- Dolny pasek: sklep + menu -->
+            <div class="bottom">
+              ${d.link ? `<a class="shop-link" href="${d.link}" target="_blank">Sklep</a>` : ""}
+              <button class="menu">⋮</button>
+            </div>
+          </div>
+        `;
+
+        /*********************
+         * OBSŁUGA CHECKBOXA *
+         *********************/
+        el.querySelector("input[type=checkbox]").addEventListener("change", async e => {
+          await updateDoc(doc(db, "items", d.id), { skipPrice: e.target.checked });
+        });
+
+        /*********************
+         * MENU EDYCJI *
+         *********************/
+        el.querySelector(".menu").addEventListener("click", () => {
+          const pin = prompt("Podaj PIN");
+          if (pin !== "1337") return;
+
+          const action = prompt("Wpisz: edit lub delete");
+          if (action === "delete") {
+            deleteDoc(doc(db, "items", d.id));
+          }
+        });
+
+        listEl.appendChild(el);
+      });
+
+      // Aktualizacja sumy
+      totalEl.textContent = total.toFixed(2) + " zł";
+    }
+
+    /*********************
+     * NASŁUCH FIRESTORE *
+     *********************/
+    onSnapshot(itemsRef, snap => {
+      currentItems = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderList();
+    });
+
+    /*********************
+     * DODAWANIE ELEMENTU *
+     *********************/
+    formEl.addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const pin = document.getElementById("pin").value;
+      if (pin !== "1337") return alert("Zły PIN");
+
+      await addDoc(itemsRef, {
+        name: formEl.name.value,
+        desc: formEl.desc.value,
+        price: parseFloat(formEl.price.value),
+        qty: parseInt(formEl.qty.value),
+        image: formEl.image.value,
+        link: formEl.link.value,
+        skipPrice: false
+      });
+
+      formEl.reset();
+    });
+  </script>
 </head>
 <body>
 
-<nav>
-  <button id="btnList">LISTA</button>
-  <button id="btnAdd">DODAJ</button>
-</nav>
+  <!-- Górne menu -->
+  <nav>
+    <button onclick="document.getElementById('addForm').style.display='none'">LISTA</button>
+    <button onclick="document.getElementById('addForm').style.display='flex'">DODAJ</button>
+  </nav>
 
-<form id="addForm" style="display:none">
-  <input id="name" placeholder="Nazwa" required>
-  <textarea id="desc" placeholder="Opis"></textarea>
-  <input id="price" type="number" step="0.01" min="0" placeholder="Cena (zł)" required>
-  <input id="qty" type="number" min="1" value="1" required>
-  <input id="image" placeholder="URL zdjęcia">
-  <input id="link" placeholder="Link do sklepu">
-  <input id="pin" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" required>
-  <button type="submit">Dodaj</button>
-</form>
+  <!-- Formularz dodawania -->
+  <form id="addForm" style="display:none">
+    <input name="name" placeholder="Nazwa" required />
+    <textarea name="desc" placeholder="Opis (ENTER = nowa linia)"></textarea>
+    <input name="price" type="number" step="0.01" placeholder="Cena" required />
+    <input name="qty" type="number" value="1" placeholder="Ilość" />
+    <input name="image" placeholder="Link do zdjęcia" />
+    <input name="link" placeholder="Link do sklepu" />
+    <input id="pin" type="number" inputmode="numeric" placeholder="PIN" required />
+    <button type="submit">Dodaj</button>
+  </form>
 
-<div id="list"></div>
+  <!-- Lista elementów -->
+  <div id="list"></div>
 
-<footer>
-  Suma: <strong id="total">0.00 zł</strong>
-</footer>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyArKqslVsWLUBO4EOPO6AyOyih23Fy6Y8o",
-    authDomain: "remont-eryk.firebaseapp.com",
-    projectId: "remont-eryk",
-    storageBucket: "remont-eryk.firebasestorage.app",
-    messagingSenderId: "557601020132",
-    appId: "1:557601020132:web:8cf6143a11ba33ca8d74f1"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const itemsRef = collection(db, "items");
-
-  const listEl = document.getElementById("list");
-  const totalEl = document.getElementById("total");
-  const form = document.getElementById("addForm");
-
-  document.getElementById("btnAdd").onclick = () => form.style.display = "block";
-  document.getElementById("btnList").onclick = () => form.style.display = "none";
-
-  onSnapshot(itemsRef, snapshot => {
-    listEl.innerHTML = "";
-    let total = 0;
-
-    snapshot.forEach(docSnap => {
-      const d = docSnap.data();
-      const enabled = d.enabled !== false;
-      const skipPrice = d.skipPrice === true;
-
-      if (enabled && !skipPrice) total += (Number(d.price) || 0) * (Number(d.qty) || 1);
-
-      const el = document.createElement("div");
-      el.className = "item";
-      el.style.position = "relative";
-
-      el.innerHTML = `
-        <div class="check" style="position:absolute; top:8px; right:8px;">
-          <input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""}/>
-        </div>
-        <img src="${d.image || ''}" alt="" class="item-image" />
-        <div class="content">
-          <h3>${d.name || "(brak nazwy)"}</h3>
-          <details>
-            <summary>Opis</summary>
-            <p>${d.desc || ''}</p>
-          </details>
-          <p>Cena: ${(Number(d.price) || 0).toFixed(2)} zł × ${d.qty || 1}</p>
-          <div class="bottom">
-            ${d.link ? `<a href="${d.link}" target="_blank" class="shop-link">Sklep</a>` : ''}
-            <div class="edit-section" style="display:none;">
-              <input type="text" class="edit-name" placeholder="Nazwa">
-              <textarea class="edit-desc" placeholder="Opis"></textarea>
-              <input type="number" step="0.01" min="0" class="edit-price" placeholder="Cena (zł)">
-              <input type="number" min="1" class="edit-qty" placeholder="Ilość">
-              <input type="text" class="edit-image" placeholder="URL zdjęcia">
-              <input type="text" class="edit-link" placeholder="Link do sklepu">
-              <input type="number" inputmode="numeric" pattern="[0-9]*" class="edit-pin" placeholder="PIN">
-              <button class="save-edit">Zapisz</button>
-            </div>
-            <button class="menu">⋮</button>
-          </div>
-        </div>
-      `;
-
-      // checkbox do pomijania ceny
-      el.querySelector(".skip-price-checkbox").onchange = e => {
-        updateDoc(doc(db, "items", docSnap.id), { skipPrice: e.target.checked });
-      };
-
-      const menuBtn = el.querySelector(".menu");
-      const editSection = el.querySelector(".edit-section");
-      menuBtn.onclick = () => {
-        const showEdit = editSection.style.display === "none";
-        if (showEdit) {
-          el.querySelector(".edit-name").value = d.name || '';
-          el.querySelector(".edit-desc").value = d.desc || '';
-          el.querySelector(".edit-price").value = d.price || 0;
-          el.querySelector(".edit-qty").value = d.qty || 1;
-          el.querySelector(".edit-image").value = d.image || '';
-          el.querySelector(".edit-link").value = d.link || '';
-          editSection.style.display = "block";
-        } else {
-          if (confirm("Usunąć tę pozycję?")) {
-            const pin = prompt("PIN:");
-            if (pin === "1337") deleteDoc(doc(db, "items", docSnap.id));
-          }
-        }
-      };
-
-      el.querySelector(".save-edit").onclick = async e => {
-        e.preventDefault();
-        const pinInput = el.querySelector(".edit-pin").value;
-        if (pinInput !== "1337") return alert("Zły PIN");
-
-        await updateDoc(doc(db, "items", docSnap.id), {
-          name: el.querySelector(".edit-name").value,
-          desc: el.querySelector(".edit-desc").value,
-          price: Number(el.querySelector(".edit-price").value),
-          qty: Number(el.querySelector(".edit-qty").value),
-          image: el.querySelector(".edit-image").value,
-          link: el.querySelector(".edit-link").value
-        });
-        editSection.style.display = "none";
-      };
-
-      listEl.appendChild(el);
-    });
-
-    totalEl.textContent = total.toFixed(2) + " zł";
-  });
-
-  form.onsubmit = async e => {
-    e.preventDefault();
-    if (document.getElementById("pin").value !== "1337") { alert("Zły PIN"); return; }
-
-    await addDoc(itemsRef, {
-      name: document.getElementById("name").value,
-      desc: document.getElementById("desc").value,
-      price: Number(document.getElementById("price").value),
-      qty: Number(document.getElementById("qty").value),
-      image: document.getElementById("image").value,
-      link: document.getElementById("link").value,
-      enabled: true,
-      skipPrice: false
-    });
-
-    form.reset();
-    form.style.display = "none";
-  };
-</script>
+  <!-- Stopka z sumą -->
+  <footer>
+    Suma: <span id="total">0.00 zł</span>
+  </footer>
 
 </body>
 </html>
