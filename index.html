@@ -16,99 +16,69 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    /************************
-     * KONFIGURACJA FIREBASE *
-     ************************/
-    const firebaseConfig = {
-      apiKey: "AIzaSyArKqslVsWLUBO4EOPO6AyOyih23Fy6Y8o",
-      authDomain: "remont-eryk.firebaseapp.com",
-      projectId: "remont-eryk",
-      storageBucket: "remont-eryk.firebasestorage.app",
-      messagingSenderId: "557601020132",
-      appId: "1:557601020132:web:8cf6143a11ba33ca8d74f1"
-    };
-
-    // Inicjalizacja Firebase i Firestore
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Referencja do kolekcji w Firestore
-    const itemsRef = collection(db, "items");
-
     /*********************
-     * ELEMENTY DOM *
-     *********************/
-    const listEl = document.getElementById("list");
-    const formEl = document.getElementById("addForm");
-    const totalEl = document.getElementById("total");
-
-    let currentItems = [];
-
-    /*********************
-     * RENDER LISTY *
-     *********************/
-    function renderList() {
-      listEl.innerHTML = "";
-      let total = 0;
-
-      currentItems.forEach(d => {
-        const skip = d.skipPrice === true;
-        const price = (Number(d.price) || 0) * (Number(d.qty) || 1);
-        if (!skip) total += price;
-
-        // Główny kontener elementu
-        const el = document.createElement("div");
-        el.className = "item";
-        el.style.position = "relative";
-
-        el.innerHTML = `
-          <!-- Checkbox w prawym górnym rogu – wyklucza z sumy -->
-          <div class="check" style="position:absolute; top:8px; right:8px;">
-            <input type="checkbox" ${skip ? "checked" : ""} />
-          </div>
-
-          <!-- Zdjęcie produktu -->
-          <img class="item-image" src="${d.image || ''}" />
-
-          <div class="content">
-            <!-- Nazwa -->
-            <h3>${d.name || "(brak nazwy)"}</h3>
-
-            <!-- Opis – rozwijany, z zachowaniem ENTERÓW -->
-            <details>
-              <summary>Opis</summary>
-              <p class="desc">${(d.desc || "").replace(/\n/g, "<br>")}</p>
-            </details>
-
-            <!-- Cena i ilość -->
-            <p>${(Number(d.price) || 0).toFixed(2)} zł × ${d.qty || 1}</p>
-
-            <!-- Dolny pasek: sklep + menu -->
-            <div class="bottom">
-              ${d.link ? `<a class="shop-link" href="${d.link}" target="_blank">Sklep</a>` : ""}
-              <button class="menu">⋮</button>
-            </div>
-          </div>
-        `;
-
-        /*********************
-         * OBSŁUGA CHECKBOXA *
-         *********************/
-        el.querySelector("input[type=checkbox]").addEventListener("change", async e => {
-          await updateDoc(doc(db, "items", d.id), { skipPrice: e.target.checked });
-        });
-
-        /*********************
          * MENU EDYCJI *
          *********************/
+        /*********************
+         * MENU EDYCJI (formularz) *
+         *********************/
         el.querySelector(".menu").addEventListener("click", () => {
-          const pin = prompt("Podaj PIN");
-          if (pin !== "1337") return;
+          // Overlay (ciemne tło)
+          const overlay = document.createElement("div");
+          overlay.style.position = "fixed";
+          overlay.style.inset = "0";
+          overlay.style.background = "rgba(0,0,0,0.4)";
+          overlay.style.display = "flex";
+          overlay.style.alignItems = "center";
+          overlay.style.justifyContent = "center";
+          overlay.style.zIndex = "999";
 
-          const action = prompt("Wpisz: edit lub delete");
-          if (action === "delete") {
-            deleteDoc(doc(db, "items", d.id));
-          }
+          // Formularz edycji
+          overlay.innerHTML = `
+            <form class="edit-section" style="max-width:400px; width:100%; background:#fff;">
+              <h3>Edycja</h3>
+              <input name="name" value="${d.name || ''}" placeholder="Nazwa" />
+              <textarea name="desc" placeholder="Opis">${d.desc || ''}</textarea>
+              <input name="price" type="number" step="0.01" value="${d.price || 0}" placeholder="Cena" />
+              <input name="qty" type="number" value="${d.qty || 1}" placeholder="Ilość" />
+              <input name="image" value="${d.image || ''}" placeholder="Link do zdjęcia" />
+              <input name="link" value="${d.link || ''}" placeholder="Link do sklepu" />
+              <input name="pin" type="number" inputmode="numeric" placeholder="PIN" required />
+              <button type="submit">Zapisz zmiany</button>
+              <button type="button" class="delete">Usuń</button>
+              <button type="button" class="close">Anuluj</button>
+            </form>
+          `;
+
+          document.body.appendChild(overlay);
+          const form = overlay.querySelector("form");
+
+          // Zapis zmian
+          form.addEventListener("submit", async e => {
+            e.preventDefault();
+            if (form.pin.value !== "1337") return alert("Zły PIN");
+
+            await updateDoc(doc(db, "items", d.id), {
+              name: form.name.value,
+              desc: form.desc.value,
+              price: parseFloat(form.price.value),
+              qty: parseInt(form.qty.value),
+              image: form.image.value,
+              link: form.link.value
+            });
+
+            overlay.remove();
+          });
+
+          // Usuwanie
+          overlay.querySelector(".delete").addEventListener("click", async () => {
+            if (form.pin.value !== "1337") return alert("Podaj PIN");
+            await deleteDoc(doc(db, "items", d.id));
+            overlay.remove();
+          });
+
+          // Anulowanie
+          overlay.querySelector(".close").addEventListener("click", () => overlay.remove());
         });
 
         listEl.appendChild(el);
