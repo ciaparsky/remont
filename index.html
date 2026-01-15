@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Remont – lista zakupów</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    header button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .hidden { display: none; }
+
+    .form {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .form input {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .form button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .summary {
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #f0f0f0;
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .price {
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: auto;
+    }
+
+    .edit {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Remont – lista zakupów</h1>
+    <div>
+      <button onclick="toggleForm()">➕ Dodaj</button>
+      <button id="authBtn" onclick="authAction()">Zaloguj</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="form hidden" id="form">
+      <input id="tab" placeholder="Zakładka (np. Podłoga)" />
+      <input id="name" placeholder="Nazwa produktu" />
+      <input id="price" placeholder="Cena (liczba, np. 1999)" />
+      <input id="image" placeholder="Link do zdjęcia" />
+      <input id="link" placeholder="Link do sklepu" />
+      <button onclick="addItem()">Zapisz</button>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="summary" id="summary"></div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <script>
+    // ===== FIREBASE CONFIG (UZUPEŁNISZ SWOIMI DANYMI) =====
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let user = null;
+    let data = [];
+    let activeTab = 'Wszystko';
+
+    auth.onAuthStateChanged(u => {
+      user = u;
+      document.getElementById('authBtn').textContent = user ? 'Wyloguj' : 'Zaloguj';
+    });
+
+    function authAction() {
+      if (user) return auth.signOut();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider);
+    }
+
+    function toggleForm() {
+      if (!user) return alert('Zaloguj się, aby dodawać lub edytować elementy');
+      document.getElementById('form').classList.toggle('hidden');
+    }
+
+    db.collection('items').onSnapshot(snap => {
+      data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      render();
+    });
+
+    function addItem() {
+      if (!user) return;
+
+      const item = {
+        tab: tab.value || 'Inne',
+        name: name.value,
+        price: Number(price.value) || 0,
+        image: image.value,
+        link: link.value
+      };
+
+      if (!item.name) return;
+      db.collection('items').add(item);
+
+      form.classList.add('hidden');
+      tab.value = name.value = price.value = image.value = link.value = '';
+    }
+
+    function render() {
+      renderTabs();
+      renderGrid();
+      renderSummary();
+    }
+
+    function renderTabs() {
+      const tabsEl = document.getElementById('tabs');
+      const tabs = ['Wszystko', ...new Set(data.map(i => i.tab))];
+      tabsEl.innerHTML = '';
+      tabs.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'tab' + (t === activeTab ? ' active' : '');
+        el.textContent = t;
+        el.onclick = () => { activeTab = t; render(); };
+        tabsEl.appendChild(el);
+      });
+    }
+
+    function renderSummary() {
+      const sum = data
+        .filter(i => activeTab === 'Wszystko' || i.tab === activeTab)
+        .reduce((a, b) => a + (b.price || 0), 0);
+
+      document.getElementById('summary').textContent = `Suma: ${sum.toLocaleString('pl-PL')} zł`;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      data
+        .filter(i => activeTab === 'Wszystko' || i.tab === activeTab)
+        .forEach(i => {
+          const card = document.createElement('div');
+          card.className = 'card';
+
+          const img = document.createElement('img');
+          img.src = i.image || '';
+          card.appendChild(img);
+
+          const h3 = document.createElement('h3');
+          h3.textContent = i.name;
+          card.appendChild(h3);
+
+          const p = document.createElement('div');
+          p.className = 'price';
+          p.textContent = `${i.price.toLocaleString('pl-PL')} zł`;
+          card.appendChild(p);
+
+          if (user) {
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+
+            const edit = document.createElement('button');
+            edit.className = 'edit';
+            edit.textContent = 'Edytuj';
+            edit.onclick = () => {
+              if (!confirm('Usunąć ten element?')) return;
+              db.collection('items').doc(i.id).delete();
+            };
+
+            actions.appendChild(edit);
+            card.appendChild(actions);
+          }
+
+          grid.appendChild(card);
+        });
+    }
+  </script>
+</body>
+</html>
