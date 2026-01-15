@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lista remontowa</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -14,13 +14,13 @@
 </nav>
 
 <form id="addForm" style="display:none">
-  <input id="name" placeholder="Nazwa" required />
+  <input id="name" placeholder="Nazwa" required>
   <textarea id="desc" placeholder="Opis"></textarea>
-  <input id="price" type="number" step="0.01" min="0" placeholder="Cena (zł)" required />
-  <input id="qty" type="number" min="1" value="1" required />
-  <input id="image" placeholder="URL zdjęcia" />
-  <input id="link" placeholder="Link do sklepu" />
-  <input type="number" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" required />
+  <input id="price" type="number" step="0.01" min="0" placeholder="Cena (zł)" required>
+  <input id="qty" type="number" min="1" value="1" required>
+  <input id="image" placeholder="URL zdjęcia">
+  <input id="link" placeholder="Link do sklepu">
+  <input id="pin" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" required>
   <button type="submit">Dodaj</button>
 </form>
 
@@ -67,13 +67,13 @@
 
       const el = document.createElement("div");
       el.className = "item";
+      el.style.position = "relative";
 
       el.innerHTML = `
         <div class="check" style="position:absolute; top:8px; right:8px;">
-          <input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""} />
+          <input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""}/>
         </div>
-
-        <img src="${d.image || ''}" alt="" />
+        <img src="${d.image || ''}" alt="" class="item-image" />
         <div class="content">
           <h3>${d.name || "(brak nazwy)"}</h3>
           <details>
@@ -81,17 +81,20 @@
             <p>${d.desc || ''}</p>
           </details>
           <p>Cena: ${(Number(d.price) || 0).toFixed(2)} zł × ${d.qty || 1}</p>
-          ${d.link ? `<a href="${d.link}" target="_blank">Sklep</a>` : ''}
-          <div class="edit-section" style="margin-top:8px; display:none;">
-            <input type="text" class="edit-name" placeholder="Nazwa" />
-            <textarea class="edit-desc" placeholder="Opis"></textarea>
-            <input type="number" step="0.01" min="0" class="edit-price" placeholder="Cena (zł)" />
-            <input type="number" min="1" class="edit-qty" placeholder="Ilość" />
-            <input type="text" class="edit-image" placeholder="URL zdjęcia" />
-            <input type="text" class="edit-link" placeholder="Link do sklepu" />
-            <button class="save-edit">Zapisz</button>
+          <div class="bottom">
+            ${d.link ? `<a href="${d.link}" target="_blank" class="shop-link">Sklep</a>` : ''}
+            <div class="edit-section" style="display:none;">
+              <input type="text" class="edit-name" placeholder="Nazwa">
+              <textarea class="edit-desc" placeholder="Opis"></textarea>
+              <input type="number" step="0.01" min="0" class="edit-price" placeholder="Cena (zł)">
+              <input type="number" min="1" class="edit-qty" placeholder="Ilość">
+              <input type="text" class="edit-image" placeholder="URL zdjęcia">
+              <input type="text" class="edit-link" placeholder="Link do sklepu">
+              <input type="number" inputmode="numeric" pattern="[0-9]*" class="edit-pin" placeholder="PIN">
+              <button class="save-edit">Zapisz</button>
+            </div>
+            <button class="menu">⋮</button>
           </div>
-          <button class="menu">⋮</button>
         </div>
       `;
 
@@ -100,16 +103,11 @@
         updateDoc(doc(db, "items", docSnap.id), { skipPrice: e.target.checked });
       };
 
-      // menu - pokazuje formularz edycji / usuwa
       const menuBtn = el.querySelector(".menu");
       const editSection = el.querySelector(".edit-section");
       menuBtn.onclick = () => {
-        const pin = prompt("PIN:");
-        if (pin !== "1337") return;
-
-        const showEdit = !editSection.style.display || editSection.style.display === "none";
+        const showEdit = editSection.style.display === "none";
         if (showEdit) {
-          // wypełniamy pola wczesnymi danymi
           el.querySelector(".edit-name").value = d.name || '';
           el.querySelector(".edit-desc").value = d.desc || '';
           el.querySelector(".edit-price").value = d.price || 0;
@@ -118,20 +116,17 @@
           el.querySelector(".edit-link").value = d.link || '';
           editSection.style.display = "block";
         } else {
-          editSection.style.display = "none";
-        }
-
-        // jeśli potwierdzenie usunięcia
-        if (!showEdit && confirm("Usunąć tę pozycję?")) {
-          deleteDoc(doc(db, "items", docSnap.id));
+          if (confirm("Usunąć tę pozycję?")) {
+            const pin = prompt("PIN:");
+            if (pin === "1337") deleteDoc(doc(db, "items", docSnap.id));
+          }
         }
       };
 
-      // zapisz edycję
       el.querySelector(".save-edit").onclick = async e => {
         e.preventDefault();
-        const pin = prompt("PIN:");
-        if (pin !== "1337") return alert("Zły PIN");
+        const pinInput = el.querySelector(".edit-pin").value;
+        if (pinInput !== "1337") return alert("Zły PIN");
 
         await updateDoc(doc(db, "items", docSnap.id), {
           name: el.querySelector(".edit-name").value,
