@@ -1,9 +1,8 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lista remontowa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -15,13 +14,23 @@
 </nav>
 
 <form id="addForm" style="display:none">
-  <input type="text" id="name" placeholder="Nazwa" required />
+  <input id="name" placeholder="Nazwa" required />
   <textarea id="desc" placeholder="Opis"></textarea>
-  <input type="number" id="price" placeholder="Cena (zł)" step="0.01" min="0" required />
-  <input type="number" id="qty" placeholder="Ilość" value="1" required />
-  <input type="text" id="image" placeholder="URL zdjęcia" />
-  <input type="text" id="link" placeholder="Link do sklepu" />
-  <input type="password" id="pin" placeholder="PIN" required />
+
+  <input
+    id="price"
+    type="number"
+    step="0.01"
+    min="0"
+    placeholder="Cena (zł)"
+    required
+  />
+
+  <input id="qty" type="number" min="1" value="1" required />
+  <input id="image" placeholder="URL zdjęcia" />
+  <input id="link" placeholder="Link do sklepu" />
+  <input id="pin" type="password" placeholder="PIN" required />
+
   <button type="submit">Dodaj</button>
 </form>
 
@@ -43,6 +52,7 @@
     doc
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  // ===== FIREBASE CONFIG (WCZORAJSZE DANE ZOSTAJĄ) =====
   const firebaseConfig = {
     apiKey: "AIzaSyArKqslVsWLUBO4EOPO6AyOyih23Fy6Y8o",
     authDomain: "remont-eryk.firebaseapp.com",
@@ -60,15 +70,13 @@
   const totalEl = document.getElementById("total");
   const form = document.getElementById("addForm");
 
-  document.getElementById("btnAdd").onclick = () => {
-    form.style.display = "block";
-  };
+  document.getElementById("btnAdd").onclick = () => form.style.display = "block";
+  document.getElementById("btnList").onclick = () => form.style.display = "none";
 
-  document.getElementById("btnList").onclick = () => {
-    form.style.display = "none";
-  };
-
+  // ===== WCZYTYWANIE WCZORAJSZYCH DANYCH =====
   onSnapshot(itemsRef, snapshot => {
+    console.log("Firestore snapshot:", snapshot.size);
+
     listEl.innerHTML = "";
     let total = 0;
 
@@ -77,49 +85,59 @@
       const enabled = d.enabled !== false;
 
       if (enabled) {
-        total += d.price * d.qty;
+        total += (Number(d.price) || 0) * (Number(d.qty) || 1);
       }
 
-      const item = document.createElement("div");
-      item.className = "item";
+      const el = document.createElement("div");
+      el.className = "item";
 
-      item.innerHTML = `
+      el.innerHTML = `
         <div class="check">
           <input type="checkbox" ${enabled ? "checked" : ""} />
         </div>
-        <img src="${d.image || ''}" alt="" />
+
+        <img src="${d.image || ""}" alt="" />
+
         <div class="content">
-          <h3>${d.name}</h3>
+          <h3>${d.name || "(brak nazwy)"}</h3>
+
           <details>
             <summary>Opis</summary>
-            <p>${d.desc || ''}</p>
+            <p>${d.desc || ""}</p>
           </details>
-          <p>Cena: ${d.price} zł × ${d.qty}</p>
-          <a href="${d.link}" target="_blank">Sklep</a>
+
+          <p>Cena: ${(Number(d.price) || 0).toFixed(2)} zł × ${d.qty || 1}</p>
+
+          ${d.link ? `<a href="${d.link}" target="_blank">Sklep</a>` : ""}
+
           <button class="menu">⋮</button>
         </div>
       `;
 
-      item.querySelector("input[type=checkbox]").onchange = e => {
+      // checkbox
+      el.querySelector("input[type=checkbox]").onchange = e => {
         updateDoc(doc(db, "items", docSnap.id), {
           enabled: e.target.checked
         });
       };
 
-      item.querySelector(".menu").onclick = () => {
-        const pin = prompt("Podaj PIN");
-        if (pin !== "1337") return alert("Zły PIN");
-        if (confirm("Usunąć tę pozycję?")) {
+      // menu
+      el.querySelector(".menu").onclick = () => {
+        const pin = prompt("PIN:");
+        if (pin !== "1337") return;
+
+        if (confirm("Usunąć pozycję?")) {
           deleteDoc(doc(db, "items", docSnap.id));
         }
       };
 
-      listEl.appendChild(item);
+      listEl.appendChild(el);
     });
 
     totalEl.textContent = total.toFixed(2) + " zł";
   });
 
+  // ===== DODAWANIE =====
   form.onsubmit = async e => {
     e.preventDefault();
 
@@ -127,6 +145,8 @@
       alert("Zły PIN");
       return;
     }
+
+    console.log("Dodawanie do Firestore");
 
     await addDoc(itemsRef, {
       name: document.getElementById("name").value,
