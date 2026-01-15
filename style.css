@@ -1,16 +1,26 @@
+/* ============================
+   GLOBALNE USTAWIENIA
+   ============================ */
+
+/* Reset box modelu – padding i border wliczane w szerokość */
 * {
   box-sizing: border-box;
 }
 
+/* Podstawowy wygląd strony */
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+  background: #f4f6f8; /* jasne tło aplikacji */
+  color: #222;         /* kolor tekstu */
 }
 
+/* ============================
+   GÓRNE MENU (LISTA / DODAJ)
+   ============================ */
+
 nav {
-  position: sticky;
+  position: sticky;     /* zawsze widoczne przy scrollu */
   top: 0;
   z-index: 10;
   display: flex;
@@ -21,11 +31,11 @@ nav {
 }
 
 nav button {
-  flex: 1;
+  flex: 1;              /* oba przyciski równej szerokości */
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: #111;
+  background: #111;     /* czarny przycisk */
   color: #fff;
   font-size: 15px;
   font-weight: 600;
@@ -35,6 +45,10 @@ nav button {
 nav button:hover {
   opacity: 0.9;
 }
+
+/* ============================
+   FORMULARZ DODAWANIA ELEMENTU
+   ============================ */
 
 #addForm {
   margin: 16px;
@@ -47,6 +61,7 @@ nav button:hover {
   gap: 10px;
 }
 
+/* Pola formularza */
 #addForm input,
 #addForm textarea,
 #addForm button {
@@ -56,11 +71,13 @@ nav button:hover {
   border: 1px solid #d0d0d0;
 }
 
+/* Pole opisu – możliwość zwiększania */
 #addForm textarea {
   resize: vertical;
   min-height: 60px;
 }
 
+/* Przycisk dodawania */
 #addForm button {
   background: #111;
   color: #fff;
@@ -69,12 +86,20 @@ nav button:hover {
   cursor: pointer;
 }
 
+/* ============================
+   LISTA ELEMENTÓW (GRID)
+   ============================ */
+
 #list {
   padding: 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
+
+/* ============================
+   POJEDYNCZA KARTA ELEMENTU
+   ============================ */
 
 .item {
   background: #ffffff;
@@ -85,13 +110,15 @@ nav button:hover {
   flex-direction: column;
 }
 
+/* Zdjęcie produktu */
 .item-image {
   width: 100%;
   height: 180px;
-  object-fit: contain;
+  object-fit: contain;  /* całe zdjęcie widoczne */
   background: #fafafa;
 }
 
+/* Checkbox w prawym górnym rogu */
 .check {
   background: #ffffff;
   border-radius: 6px;
@@ -101,8 +128,12 @@ nav button:hover {
 .check input {
   width: 20px;
   height: 20px;
-  accent-color: #2ecc71;
+  accent-color: #2ecc71; /* zielony checkmark */
 }
+
+/* ============================
+   ZAWARTOŚĆ KARTY
+   ============================ */
 
 .content {
   padding: 14px;
@@ -116,30 +147,38 @@ nav button:hover {
   font-size: 18px;
 }
 
+/* Opis – sekcja rozwijana */
 .content details summary {
   cursor: pointer;
   font-weight: 600;
   color: #555;
 }
 
+/* Tekst opisu (z zachowaniem <br>) */
 .content details p {
   margin: 8px 0 0;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
+/* Cena */
 .content p {
   margin: 0;
   font-weight: 600;
 }
 
+/* ============================
+   DOLNY PASEK: SKLEP + MENU
+   ============================ */
+
 .bottom {
-  margin-top: auto;
+  margin-top: auto; /* przykleja dół */
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* Link do sklepu */
 .shop-link {
   flex: 1;
   text-align: center;
@@ -156,6 +195,7 @@ nav button:hover {
   color: #ffffff;
 }
 
+/* Przycisk menu (⋮) */
 .menu {
   width: 44px;
   height: 44px;
@@ -169,6 +209,10 @@ nav button:hover {
 .menu:hover {
   background: #e0e0e0;
 }
+
+/* ============================
+   FORMULARZ EDYCJI ELEMENTU
+   ============================ */
 
 .edit-section {
   margin-top: 12px;
@@ -201,6 +245,10 @@ nav button:hover {
   cursor: pointer;
 }
 
+/* ============================
+   STOPKA – SUMA KOSZTÓW
+   ============================ */
+
 footer {
   position: sticky;
   bottom: 0;
@@ -212,8 +260,12 @@ footer {
   font-weight: 700;
 }
 
+/* ============================
+   RESPONSYWNOŚĆ
+   ============================ */
+
 @media (max-width: 480px) {
   .item-image {
-    height: 150px;
+    height: 150px; /* mniejsze zdjęcie na telefonie */
   }
 }
