@@ -63,16 +63,14 @@
       const enabled = d.enabled !== false;
       const skipPrice = d.skipPrice === true;
 
-      if (enabled && !skipPrice) {
-        total += (Number(d.price) || 0) * (Number(d.qty) || 1);
-      }
+      if (enabled && !skipPrice) total += (Number(d.price) || 0) * (Number(d.qty) || 1);
 
       const el = document.createElement("div");
       el.className = "item";
 
       el.innerHTML = `
         <div class="check">
-          <input type="checkbox" ${!skipPrice ? "checked" : ""} />
+          <label><input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""}/> Nie liczyć ceny</label>
         </div>
         <img src="${d.image || ''}" alt="" />
         <div class="content">
@@ -83,27 +81,66 @@
           </details>
           <p>Cena: ${(Number(d.price) || 0).toFixed(2)} zł × ${d.qty || 1}</p>
           ${d.link ? `<a href="${d.link}" target="_blank">Sklep</a>` : ''}
-          <div class="edit-section" style="margin-top:8px;">
-            <label><input type="checkbox" class="skip-price-checkbox" ${skipPrice ? "checked" : ""}/> Nie liczyć ceny</label>
-            <button class="menu">⋮</button>
+          <div class="edit-section" style="margin-top:8px; display:none;">
+            <input type="text" class="edit-name" placeholder="Nazwa" />
+            <textarea class="edit-desc" placeholder="Opis"></textarea>
+            <input type="number" step="0.01" min="0" class="edit-price" placeholder="Cena (zł)" />
+            <input type="number" min="1" class="edit-qty" placeholder="Ilość" />
+            <input type="text" class="edit-image" placeholder="URL zdjęcia" />
+            <input type="text" class="edit-link" placeholder="Link do sklepu" />
+            <button class="save-edit">Zapisz</button>
           </div>
+          <button class="menu">⋮</button>
         </div>
       `;
 
-      // checkbox do liczenia ceny
+      // checkbox do pomijania ceny
       el.querySelector(".skip-price-checkbox").onchange = e => {
-        updateDoc(doc(db, "items", docSnap.id), {
-          skipPrice: e.target.checked
-        });
+        updateDoc(doc(db, "items", docSnap.id), { skipPrice: e.target.checked });
       };
 
-      // menu usuwania / edycji
-      el.querySelector(".menu").onclick = () => {
+      // menu - pokazuje formularz edycji / usuwa
+      const menuBtn = el.querySelector(".menu");
+      const editSection = el.querySelector(".edit-section");
+      menuBtn.onclick = () => {
         const pin = prompt("PIN:");
         if (pin !== "1337") return;
-        if (confirm("Usunąć tę pozycję?")) {
+
+        const showEdit = !editSection.style.display || editSection.style.display === "none";
+        if (showEdit) {
+          // wypełniamy pola wczesnymi danymi
+          el.querySelector(".edit-name").value = d.name || '';
+          el.querySelector(".edit-desc").value = d.desc || '';
+          el.querySelector(".edit-price").value = d.price || 0;
+          el.querySelector(".edit-qty").value = d.qty || 1;
+          el.querySelector(".edit-image").value = d.image || '';
+          el.querySelector(".edit-link").value = d.link || '';
+          editSection.style.display = "block";
+        } else {
+          editSection.style.display = "none";
+        }
+
+        // jeśli potwierdzenie usunięcia
+        if (!showEdit && confirm("Usunąć tę pozycję?")) {
           deleteDoc(doc(db, "items", docSnap.id));
         }
+      };
+
+      // zapisz edycję
+      el.querySelector(".save-edit").onclick = async e => {
+        e.preventDefault();
+        const pin = prompt("PIN:");
+        if (pin !== "1337") return alert("Zły PIN");
+
+        await updateDoc(doc(db, "items", docSnap.id), {
+          name: el.querySelector(".edit-name").value,
+          desc: el.querySelector(".edit-desc").value,
+          price: Number(el.querySelector(".edit-price").value),
+          qty: Number(el.querySelector(".edit-qty").value),
+          image: el.querySelector(".edit-image").value,
+          link: el.querySelector(".edit-link").value
+        });
+        editSection.style.display = "none";
       };
 
       listEl.appendChild(el);
