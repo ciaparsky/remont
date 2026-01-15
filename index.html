@@ -2,95 +2,146 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lista remontowa</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista remontowa</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
+<nav>
+  <button id="btnList">LISTA</button>
+  <button id="btnAdd">DODAJ</button>
+</nav>
 
-<!-- Firebase -->
+<form id="addForm" style="display:none">
+  <input type="text" id="name" placeholder="Nazwa" required />
+  <textarea id="desc" placeholder="Opis"></textarea>
+  <input type="number" id="price" placeholder="Cena (zł)" required />
+  <input type="number" id="qty" placeholder="Ilość" value="1" required />
+  <input type="text" id="image" placeholder="URL zdjęcia" />
+  <input type="text" id="link" placeholder="Link do sklepu" />
+  <input type="password" id="pin" placeholder="PIN" required />
+  <button type="submit">Dodaj</button>
+</form>
+
+<div id="list"></div>
+
+<footer>
+  Suma: <strong id="total">0.00 zł</strong>
+</footer>
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    deleteDoc,
+    updateDoc,
+    doc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyArKqslVsWLUBO4EOPO6AyOyih23Fy6Y8o",
+    authDomain: "remont-eryk.firebaseapp.com",
+    projectId: "remont-eryk",
+    storageBucket: "remont-eryk.firebasestorage.app",
+    messagingSenderId: "557601020132",
+    appId: "1:557601020132:web:8cf6143a11ba33ca8d74f1"
+  };
 
-const firebaseConfig = {
-apiKey: "AIzaSyArKqslVsWLUBO4EOPO6AyOyih23Fy6Y8o",
-authDomain: "remont-eryk.firebaseapp.com",
-projectId: "remont-eryk",
-storageBucket: "remont-eryk.firebasestorage.app",
-messagingSenderId: "557601020132",
-appId: "1:557601020132:web:8cf6143a11ba33ca8d74f1"
-};
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const itemsRef = collection(db, "items");
 
+  const listEl = document.getElementById("list");
+  const totalEl = document.getElementById("total");
+  const form = document.getElementById("addForm");
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const itemsRef = collection(db, "items");
+  document.getElementById("btnAdd").onclick = () => {
+    form.style.display = "block";
+  };
 
+  document.getElementById("btnList").onclick = () => {
+    form.style.display = "none";
+  };
 
-const listEl = document.getElementById("list");
-const totalEl = document.getElementById("total");
-const form = document.getElementById("addForm");
+  onSnapshot(itemsRef, snapshot => {
+    listEl.innerHTML = "";
+    let total = 0;
 
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+      const enabled = d.enabled !== false;
 
-function render(snapshot) {
-listEl.innerHTML = "";
-let total = 0;
+      if (enabled) {
+        total += d.price * d.qty;
+      }
 
+      const item = document.createElement("div");
+      item.className = "item";
 
-snapshot.forEach(docSnap => {
-const d = docSnap.data();
-const enabled = d.enabled !== false;
-if (enabled) total += d.price * d.qty;
+      item.innerHTML = `
+        <div class="check">
+          <input type="checkbox" ${enabled ? "checked" : ""} />
+        </div>
+        <img src="${d.image || ''}" alt="" />
+        <div class="content">
+          <h3>${d.name}</h3>
+          <details>
+            <summary>Opis</summary>
+            <p>${d.desc || ''}</p>
+          </details>
+          <p>Cena: ${d.price} zł × ${d.qty}</p>
+          <a href="${d.link}" target="_blank">Sklep</a>
+          <button class="menu">⋮</button>
+        </div>
+      `;
 
+      item.querySelector("input[type=checkbox]").onchange = e => {
+        updateDoc(doc(db, "items", docSnap.id), {
+          enabled: e.target.checked
+        });
+      };
 
-const el = document.createElement("div");
-el.className = "item";
-el.innerHTML = `
-<div class="check">
-<input type="checkbox" ${enabled ? "checked" : ""} />
-</div>
-<img src="${d.image}" />
-<div class="content">
-<h3>${d.name}</h3>
-<details><summary>Opis</summary>${d.desc}</details>
-<p>Cena: ${d.price} zł × ${d.qty}</p>
-<a href="${d.link}" target="_blank">Sklep</a>
-<button class="menu">⋮</button>
-</div>
-`;
+      item.querySelector(".menu").onclick = () => {
+        const pin = prompt("Podaj PIN");
+        if (pin !== "1337") return alert("Zły PIN");
+        if (confirm("Usunąć tę pozycję?")) {
+          deleteDoc(doc(db, "items", docSnap.id));
+        }
+      };
 
+      listEl.appendChild(item);
+    });
 
-el.querySelector("input").onchange = e => {
-updateDoc(doc(db, "items", docSnap.id), { enabled: e.target.checked });
-};
+    totalEl.textContent = total.toFixed(2) + " zł";
+  });
 
+  form.onsubmit = async e => {
+    e.preventDefault();
 
-el.querySelector(".menu").onclick = () => {
-const pin = prompt("PIN:");
-if (pin !== "1337") return;
-if (confirm("Usunąć pozycję?")) deleteDoc(doc(db, "items", docSnap.id));
-};
+    if (document.getElementById("pin").value !== "1337") {
+      alert("Zły PIN");
+      return;
+    }
 
+    await addDoc(itemsRef, {
+      name: document.getElementById("name").value,
+      desc: document.getElementById("desc").value,
+      price: Number(document.getElementById("price").value),
+      qty: Number(document.getElementById("qty").value),
+      image: document.getElementById("image").value,
+      link: document.getElementById("link").value,
+      enabled: true
+    });
 
-listEl.appendChild(el);
-});
+    form.reset();
+    form.style.display = "none";
+  };
+</script>
 
-
-totalEl.textContent = total.toFixed(2) + " zł";
-}
-
-
-onSnapshot(itemsRef, render);
-
-
-form.onsubmit = async e => {
-e.preventDefault();
-if (form.pin.value !== "1337") return alert("Zły PIN");
-
-
-await addDoc(itemsRef, {
-name: form.name.value,
-desc: form.desc.value,
+</body>
 </html>
