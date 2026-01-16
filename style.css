@@ -11,7 +11,7 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #ff0000; /* jasne tło aplikacji */
+  background: #f4f6f8; /* jasne tło aplikacji */
   color: #222;         /* kolor tekstu */
 }
 
