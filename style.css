@@ -30,17 +30,44 @@ nav {
   border-bottom: 1px solid #e0e0e0;
 }
 
-nav button {
-  flex: 1;              /* oba przyciski równej szerokości */
+/*nav button {
+  flex: 1;              /* oba przyciski równej szerokości /
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: #111;     /* czarny przycisk */
+  background: #111;     /* czarny przycisk /
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}*/
+nav {
+  display: flex;
+}
+
+nav button {
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #111;
   color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Pierwszy przycisk - 75% szerokości */
+nav button:first-child {
+  flex: 0 0 75%;
+}
+
+/* Drugi przycisk - 25% szerokości */
+nav button:last-child {
+  flex: 0 0 25%;
+}
+
+
+
 
 nav button:hover {
   opacity: 0.9;
