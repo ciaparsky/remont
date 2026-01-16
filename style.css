@@ -32,8 +32,8 @@ nav {
 
 nav {
   display: flex;
-  gap: 10px;          /* opcjonalnie odstęp między przyciskami */
-  padding: 10px;      /* odstęp od krawędzi ekranu */
+  gap: 10px;           /* odstęp między przyciskami */
+  padding: 10px;       /* odstęp od krawędzi ekranu */
   box-sizing: border-box; /* uwzględnia padding w szerokości */
 }
 
@@ -41,22 +41,22 @@ nav button {
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: #111;
+  background: #111;    /* czarny przycisk */
   color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  flex-shrink: 0;     /* przydatne, żeby nie kurczyły się zbyt mocno */
+  flex-shrink: 0;      /* przyciski nie kurczą się poniżej proporcji */
 }
 
 /* LISTA – 75% szerokości */
 nav button:first-child {
-  flex: 3;
+  flex: 3;            /* 3 części */
 }
 
 /* DODAJ – 25% szerokości */
 nav button:last-child {
-  flex: 1;
+  flex: 1;            /* 1 część */
 }
 
 
