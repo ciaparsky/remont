@@ -32,31 +32,31 @@ nav {
 
 nav {
   display: flex;
-  gap: 10px;           /* odstęp między przyciskami */
-  padding: 10px;       /* odstęp od krawędzi ekranu */
-  box-sizing: border-box; /* uwzględnia padding w szerokości */
+  padding: 10px;             /* odstęp od krawędzi ekranu */
+  gap: 10px;                 /* odstęp między przyciskami */
+  box-sizing: border-box;
 }
 
 nav button {
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: #111;    /* czarny przycisk */
+  background: #ff0000;
   color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  flex-shrink: 0;      /* przyciski nie kurczą się poniżej proporcji */
+  flex-shrink: 0;
 }
 
-/* LISTA – 75% szerokości */
+/* LISTA – 75% szerokości kontenera minus gap */
 nav button:first-child {
-  flex: 3;            /* 3 części */
+  flex: 0 0 calc(75% - 7.5px);  /* 7.5px = połowa gapu */
 }
 
-/* DODAJ – 25% szerokości */
+/* DODAJ – 25% szerokości kontenera minus gap */
 nav button:last-child {
-  flex: 1;            /* 1 część */
+  flex: 0 0 calc(25% - 7.5px);
 }
 
 
