@@ -30,15 +30,23 @@ nav {
   border-bottom: 1px solid #e0e0e0;
 }
 
+nav {
+  display: flex;
+  gap: 10px;          /* opcjonalnie odstęp między przyciskami */
+  padding: 10px;      /* odstęp od krawędzi ekranu */
+  box-sizing: border-box; /* uwzględnia padding w szerokości */
+}
+
 nav button {
   padding: 12px;
   border: none;
   border-radius: 10px;
-  background: #111;     /* czarny przycisk */
+  background: #111;
   color: #fff;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;     /* przydatne, żeby nie kurczyły się zbyt mocno */
 }
 
 /* LISTA – 75% szerokości */
@@ -50,6 +58,7 @@ nav button:first-child {
 nav button:last-child {
   flex: 1;
 }
+
 
 
 
